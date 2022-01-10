@@ -25,6 +25,7 @@ class App extends Component {
     name: "",
     certificate: "Certificate",
     buffer: null,
+    certificateID: 0,
   };
 
   componentDidMount = async () => {
@@ -41,7 +42,7 @@ class App extends Component {
       const instance = new web3.eth.Contract(
         BlockPrint.abi,
         deployedNetwork && deployedNetwork.address
-        // 0x25EFEdE3C54bA3e715ed773EF356d0C43B440AB9
+        // 0xC9aE4b78f49d3cD00a0CCB0E4c16602d9C31fe41
       );
 
       // Set web3, accounts, and contract to the state, and then proceed with an
@@ -96,11 +97,27 @@ class App extends Component {
       }
       this.setState({ imageHash: result[0].hash });
       const { accounts, contract } = this.state;
-      var newTokenId = await contract.methods
+      var contractResponse = await contract.methods
         .mintCertificate(this.state.imageHash)
         .send({ from: accounts[0] });
+      console.log(JSON.stringify(contractResponse));
+      var newTokenId =
+        contractResponse.events.CertificateCreated.returnValues.tokenID;
+      const message = `Your certificate id is: ${newTokenId}`;
+      alert(message);
       console.log(newTokenId);
     });
+  };
+
+  getCertificate = async (event) => {
+    event.preventDefault();
+    console.log(event.target.certificateID.value);
+    const { accounts, contract } = this.state;
+    var _certificateID = await contract.methods
+      .fetchCertificate(event.target.certificateID.value)
+      .call();
+    console.log(_certificateID);
+    this.setState({ certificateID: _certificateID });
   };
 
   render() {
@@ -130,6 +147,18 @@ class App extends Component {
         </div>
         <button onClick={this.createImageFile}>Build Image</button>
         <button onClick={this.uploadCertificate}>Upload Image</button>
+
+        <form onSubmit={this.getCertificate}>
+          <h2>Get Certificate</h2>
+          <label for="certificateID">Certificate Id: </label>
+          <input type="number" id="certificateID" />
+          <br />
+          <h3>
+            Certificate: https://ipfs.infura.io/ipfs/
+            {this.state.certificateID}
+          </h3>
+          <input type="submit" />
+        </form>
       </div>
     );
   }
